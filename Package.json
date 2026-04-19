@@ -1,5 +1,5 @@
 {
-  "name": "pvp-racing-game",
+  "name": "speed-factoty",
   "version": "1.0.0",
   "description": "Browser-based PvP racing game with Socket.io",
   "main": "server.js",
