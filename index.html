@@ -18,6 +18,9 @@
   <div id="onlineCounter">Онлайн игроков: 0</div>
 
   <script>
+    // ВАЖНО: замени URL на свой Railway после деплоя
+    const socket = io("https://speed-factoty.up.railway.app");
+
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
@@ -27,7 +30,6 @@
     let others = {};
     let keys = {};
     let bullets = [];
-    const socket = io();
 
     // управление
     document.addEventListener("keydown", e => {
@@ -53,64 +55,23 @@
     joystick.on('move',(evt,data)=>{if(data.direction){keys["ArrowUp"]=(data.direction.angle==="up");keys["ArrowDown"]=(data.direction.angle==="down");keys["ArrowLeft"]=(data.direction.angle==="left");keys["ArrowRight"]=(data.direction.angle==="right");}});
     joystick.on('end',()=>{keys["ArrowUp"]=false;keys["ArrowDown"]=false;keys["ArrowLeft"]=false;keys["ArrowRight"]=false;});
 
-    // машины
+    // простая отрисовка
     function drawCar(ctx, car) {
       ctx.save(); ctx.translate(car.x, car.y); ctx.rotate(car.angle);
-      if(car.skin==="truck"){ctx.fillStyle="brown";ctx.fillRect(-25,-15,50,30);}
-      else if(car.skin==="jeep"){ctx.fillStyle="green";ctx.fillRect(-20,-12,40,24);}
-      else if(car.skin==="tractor"){ctx.fillStyle="orange";ctx.fillRect(-30,-20,60,40);}
-      else if(car.skin==="dump"){ctx.fillStyle="gray";ctx.fillRect(-35,-18,70,36);}
-      else {ctx.fillStyle="blue";ctx.fillRect(-20,-10,40,20);}
+      ctx.fillStyle="blue"; ctx.fillRect(-20,-10,40,20);
       ctx.restore();
     }
-
-    // персонажи
     function drawPerson(ctx, person){
       ctx.save(); ctx.translate(person.x, person.y);
-      if(person.skin==="soldier"){ctx.fillStyle="darkgreen";}
-      else if(person.skin==="driver"){ctx.fillStyle="blue";}
-      else if(person.skin==="worker"){ctx.fillStyle="orange";}
-      else {ctx.fillStyle="green";}
-      ctx.fillRect(-10,-20,20,20);
+      ctx.fillStyle="green"; ctx.fillRect(-10,-20,20,20);
       ctx.restore();
     }
 
-    // оружие
     function shoot(){ bullets.push({x:person.x,y:person.y,angle:0,owner:socket.id}); }
     function updateBullets(){
       bullets.forEach(b=>{
         b.x += Math.cos(b.angle)*5; b.y += Math.sin(b.angle)*5;
-        for(let id in others){
-          let o = others[id].person; let dx=b.x-o.x, dy=b.y-o.y;
-          if(Math.sqrt(dx*dx+dy*dy)<15){ o.hp-=20; }
-        }
       });
-    }
-
-    // чекпоинты
-    let checkpoints=[{x:200,y:200},{x:600,y:200},{x:600,y:400},{x:200,y:400}];
-    let currentCheckpoint=0;
-    function checkCheckpoint(){
-      let cp=checkpoints[currentCheckpoint]; let dx=car.x-cp.x, dy=car.y-cp.y;
-      if(Math.sqrt(dx*dx+dy*dy)<30){ currentCheckpoint++; if(currentCheckpoint>=checkpoints.length){alert("Финиш!");currentCheckpoint=0;} }
-    }
-
-    // объекты
-    let obstacles=[{x:300,y:300,w:50,h:50}];
-    let heals=[{x:500,y:200}];
-    let boosts=[{x:200,y:500}];
-    let ramps=[{x:400,y:400,w:60,h:20}];
-
-    function drawObjects(){
-      ctx.fillStyle="black"; obstacles.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h));
-      ctx.fillStyle="lime"; heals.forEach(h=>{ctx.beginPath();ctx.arc(h.x,h.y,10,0,Math.PI*2);ctx.fill();});
-      ctx.fillStyle="yellow"; boosts.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,10,0,Math.PI*2);ctx.fill();});
-      ctx.fillStyle="orange"; ramps.forEach(r=>ctx.fillRect(r.x,r.y,r.w,r.h));
-    }
-    function checkCollisions(){
-      heals.forEach((h,i)=>{let dx=car.x-h.x,dy=car.y-h.y;if(Math.sqrt(dx*dx+dy*dy)<20){car.hp=Math.min(100,car.hp+20);heals.splice(i,1);}});
-      boosts.forEach((b,i)=>{let dx=car.x-b.x,dy=car.y-b.y;if(Math.sqrt(dx*dx+dy*dy)<20){car.speed+=2;boosts.splice(i,1);}});
-      ramps.forEach(r=>{if(car.x>r.x&&car.x<r.x+r.w&&car.y>r.y&&car.y<r.y+r.h){car.y-=30;}});
     }
 
     function update(){
@@ -120,7 +81,6 @@
         if(keys["ArrowLeft"]) car.angle -= 0.05;
         if(keys["ArrowRight"]) car.angle += 0.05;
         car.x += Math.cos(car.angle)*car.speed; car.y += Math.sin(car.angle)*car.speed;
-        checkCheckpoint(); checkCollisions();
       } else {
         if(keys["ArrowUp"]) person.y -= person.speed;
         if(keys["ArrowDown"]) person.y += person.speed;
@@ -132,19 +92,9 @@
       socket.emit("move",{car,person,mode});
 
       ctx.clearRect(0,0,800,600);
-      checkpoints.forEach(cp=>{ctx.fillStyle="red";ctx.beginPath();ctx.arc(cp.x,cp.y,10,0,Math.PI*2);ctx.fill();});
-      drawObjects();
       drawCar(ctx,car); drawPerson(ctx,person);
       bullets.forEach(b=>{ctx.fillStyle="black";ctx.fillRect(b.x-2,b.y-2,4,4);});
       for(let id in others){drawCar(ctx,others[id].car);drawPerson(ctx,others[id].person);}
       requestAnimationFrame(update);
     }
-    update();
-
-    socket.on("state", players => { others=players; });
-    socket.on("onlineCount", count => {
-      document.getElementById("onlineCounter").innerText = "Онлайн игроков: " + count;
-    });
-  </script>
-</body>
-</html>
+    update
