@@ -30,6 +30,6 @@ io.on("connection", socket => {
   });
 });
 
-// ВАЖНО: используем process.env.PORT
+// Railway назначает порт автоматически
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));
